@@ -1,0 +1,35 @@
+pipeline{
+    agent any
+    
+    environment{
+        PATH = "/opt/maven3/bin:$PATH"
+    }
+    stages{
+        stage("Git Checkout"){
+            steps{
+                git credentialsId: 'a73fa3fa-b0e1-47ea-9e1a-0da7b1ecfb90', url: 'https://github.com/maqsood1989/bookstore-app.git'
+            }
+        }
+        stage("Maven Build"){
+            steps{
+                sh "mvn clean package"
+                sh "mv target/*.war target/meapun.war"
+            }
+        }
+        stage("deploy-dev"){
+            steps{
+                sshagent(['tomcat-new']) {
+                sh """
+                    scp -o StrictHostKeyChecking=no target/meapun.war  ubuntu@172.31.14.37:/home/ubuntu/apache-tomcat-10.0.27/webapps/
+                    
+                    ssh ubuntu@172.31.14.37 /home/ubuntu/apache-tomcat-10.0.27/bin/shutdown.sh
+                    
+                    ssh ubuntu@172.31.14.37 /home/ubuntu/apache-tomcat-10.0.27/bin/startup.sh
+                
+                """
+            }
+            
+            }
+        }
+    }
+}
